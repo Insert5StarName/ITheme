@@ -19,7 +19,7 @@ First install all dependencies those being the ones listed above plus
 * pywal
 * calc
 * network-manager-applet
-* wpgtk (dont for get to install the gtk templates)
+* wpgtk (dont forget to install the gtk templates)
 * (if i forgot any dependencies let me know)
   
 Run `git clone git@github.com:Insert5StarName/ITheme.git && cd ITheme && bash install.sh` in your Terminal 
