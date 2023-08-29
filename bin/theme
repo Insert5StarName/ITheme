@@ -1,0 +1,107 @@
+#!/bin/bash
+#
+#  _____ _______ _                         
+# |_   _|__   __| |                        
+#   | |    | |  | |__   ___ _ __ ___   ___ 
+#   | |    | |  | '_ \ / _ \ '_ ` _ \ / _ \
+#  _| |_   | |  | | | |  __/ | | | | |  __/
+# |_____|  |_|  |_| |_|\___|_| |_| |_|\___|
+#                                          
+#ITheme Color Change Script                                         
+#Based on https://github.com/adi1090x/polybar-themes
+#Modified by Amelia Yukii (https://transfem.social/@Amelia)
+#https://github.com/Insert5StarName
+#
+# Module for Automaticly Changing Color of the Entire Setup
+PATH="$PATH:${HOME}/.local/bin/"
+# Color files
+PFILE="$HOME/.config/polybar/colors.ini"
+WFILE="$HOME/.cache/wal/colors.sh"
+DFILE="$HOME/.config/dunst/dunstrc"
+IFILE="$HOME/.config/i3/config"
+# Get colors
+pywal_get() {
+	# Set Theme GTK
+	wpg -s "$1"
+	# Grab Colors for Later Use in the Script
+	wal -i "$1" -q -t
+	# Set Wallpaper with Nitrogen Permantly
+	nitrogen --set-zoom-fill --save "$1"
+}
+
+# Change colors
+change_color() {
+	# Polybar new
+	sed -i -e "s/background = #.*/background = $BG/g" $PFILE
+        sed -i -e "s/foreground = #.*/foreground = $FG/g" $PFILE
+        sed -i -e "s/foreground-alt = #.*/foreground-alt = $FGA/g" $PFILE
+        sed -i -e "s/module-fg = #.*/module-fg = $MF/g" $PFILE
+        sed -i -e "s/primary = #.*/primary = $AC/g" $PFILE
+        sed -i -e "s/secondary = #.*/secondary = $SC/g" $PFILE
+        sed -i -e "s/alternate = #.*/alternate = $AL/g" $PFILE
+	# Dunst
+	sed -i -e "s/background = \"#.*/background = \"$BG\"/g" $DFILE
+        sed -i -e "s/foreground = \"#.*/foreground = \"$FG\"/g" $DFILE
+	sed -i -e "s/frame_color = \"#.*/frame_color = \"$AC\"/g" $DFILE
+	# Copy the Color Files of Kitty 
+	cp $HOME/.cache/wal/colors-kitty.conf $HOME/.config/kitty/colors.conf
+	# Copy the Color Files of Rofi
+	cp $HOME/.cache/wal/colors-rofi-dark.rasi $HOME/.config/rofi/colors.rasi
+	# Replace the Active Window Borders
+	sed -i "s/client\.focused .*/client.focused $AC $BG $FG $AC $AC/" $IFILE
+	# Restart Polybar now that we changed the colors
+	polybar-msg cmd restart
+	# We wanna kill picom this point since we are gonna restart i3 next
+	pkill -f picom
+	# Send Restart to I3
+	i3-msg restart
+	# Start the Layout Script again since it died with the I3 Restart
+	python3 $HOME/.config/i3/layout.py &
+	# Start Picom again
+	picom &
+	# Restart Dunst to apply new theme and send a Notification
+	pkill -f dunst;dunstify "Theme Switcher" "Applied Theme Successfully" -i '/home/yukii/Pictures/Profile Pictures/1177-makimaisaiming.png'
+}
+hex_to_rgb() {
+    # Convert a hex value WITHOUT the hashtag (#)
+    R=$(printf "%d" 0x${1:0:2})
+    G=$(printf "%d" 0x${1:2:2})
+    B=$(printf "%d" 0x${1:4:2})
+}
+
+get_fg_color(){
+    INTENSITY=$(calc "$R*0.299 + $G*0.587 + $B*0.114")
+
+    if [ $(echo "$INTENSITY>186" | bc) -eq 1 ]; then
+        MF="#202020"
+    else
+        MF="#F5F5F5"
+    fi
+}
+# Main
+if [[ "$1" ]]; then
+	pywal_get "$1"
+
+	# Source the pywal color file
+	if [[ -e "$WFILE" ]]; then
+		. "$WFILE"
+	else
+		echo 'Color file does not exist, exiting...'
+		exit 1
+	fi
+	# Grab Colors as Vars
+	BG=`printf "%s\n" "$background"`                                                                                                                                                                     
+        FG=`printf "%s\n" "$foreground"`                                                                                                                                                                     
+        FGA=`printf "%s\n" "$color8"`                                                                                                                                                                        
+        AC=`printf "%s\n" "$color1"`                                                                                                                                                                         
+        SC=`printf "%s\n" "$color2"`                                                                                                                                                                         
+        AL=`printf "%s\n" "$color3"`
+	HEX=${AC:1}
+
+        hex_to_rgb $HEX
+	get_fg_color
+	change_color
+else
+	echo -e "[!] Please enter the path to wallpaper. \n"
+	echo "Usage : ./pywal.sh path/to/image"
+fi
